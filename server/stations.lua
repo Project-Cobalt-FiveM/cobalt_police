@@ -31,13 +31,19 @@ CreateThread(function()
 
         if armory then
             inventory:CreateStash(armory.id, {
-                invType = 'big_storage',
+                slots = armory.slots,
+                maxWeight = armory.maxWeight,
                 label = locale(('station.armory.%s'):format(armory.id)),
             })
         end
     end
 
-    inventory:CreateStash(LOCKER_STASH, { invType = 'small_storage', label = locale('station.locker'), personal = true })
+    inventory:CreateStash(LOCKER_STASH, {
+        slots = config.locker.slots,
+        maxWeight = config.locker.maxWeight,
+        label = locale('station.locker'),
+        personal = true,
+    })
 end)
 
 ---@param armory table

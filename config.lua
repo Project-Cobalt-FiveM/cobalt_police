@@ -85,6 +85,12 @@ return {
     -- GTA control ids blocked while cuffed (attack, aim, enter vehicle, weapon wheel and more)
     disabledControls = { 24, 25, 26, 37, 47, 69, 73, 75, 92, 114, 140, 141, 142, 257, 263, 264 },
 
+    -- Personal lockers, one stash per officer shared by every station
+    locker = {
+        slots = 100, -- cells, laid out 5 to a row
+        maxWeight = 200000, -- most it holds, in grams
+    },
+
     -- Stations: blip, wardrobe point, boss menu, locker, armory with its refill (cooldown in seconds) and vehicle garage
     stations = {
         {
@@ -97,6 +103,8 @@ return {
             armory = {
                 id = 'lspd_mission_row_armory', -- cobalt_inventory stash id; the stash title is station.armory.<id> in locales/en.json
                 coords = vec3(452.42, -980.03, 29.69), -- where officers open it
+                slots = 150, -- cells, laid out 5 to a row
+                maxWeight = 400000, -- most it holds, in grams
                 minGrade = 1, -- lowest job grade allowed in
                 refillCooldown = 1800, -- seconds between restocks; opening it tops each item back up to its amount
                 items = { -- items kept in stock: item name and the amount it refills to
