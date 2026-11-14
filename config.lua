@@ -85,13 +85,23 @@ return {
     -- GTA control ids blocked while cuffed (attack, aim, enter vehicle, weapon wheel and more)
     disabledControls = { 24, 25, 26, 37, 47, 69, 73, 75, 92, 114, 140, 141, 142, 257, 263, 264 },
 
-    -- Personal lockers, one stash per officer shared by every station
-    locker = {
-        slots = 100, -- cells, laid out 5 to a row
-        maxWeight = 200000, -- most it holds, in grams
+    -- Armory restocks, keyed by a stash id from cobalt_inventory data/stashes.lua, which sets where the armory is,
+    -- its size and the grades that open it; opening the armory tops each item back up to its amount
+    armories = {
+        lspd_mission_row_armory = {
+            refillCooldown = 1800, -- seconds between restocks
+            items = { -- items kept in stock: item name and the amount it refills to
+                { name = 'weapon_pistol', amount = 1 },
+                { name = 'pistol_ammo', amount = 60 },
+                { name = 'handcuffs', amount = 2 },
+                { name = 'radio', amount = 1 },
+                { name = 'armor', amount = 1 },
+                { name = 'bandage', amount = 5 },
+            },
+        },
     },
 
-    -- Stations: blip, wardrobe point, boss menu, locker, armory with its refill (cooldown in seconds) and vehicle garage
+    -- Stations: blip, wardrobe point, boss menu and vehicle garage; lockers and armories are stashes in cobalt_inventory data/stashes.lua
     stations = {
         {
             id = 'mission_row', -- unique station id; the blip name is station.blip.<id> in locales/en.json
@@ -99,23 +109,6 @@ return {
             coords = vec3(425.13, -979.55, 30.71), -- blip position
             wardrobe = vec3(461.74, -998.86, 30.69), -- where officers change into uniform
             bossMenu = vec3(447.53, -974.07, 30.47), -- where the boss opens the department menu; leave out for none
-            locker = vec3(457.66, -990.06, 30.69), -- where each officer opens their personal locker; leave out for none
-            armory = {
-                id = 'lspd_mission_row_armory', -- cobalt_inventory stash id; the stash title is station.armory.<id> in locales/en.json
-                coords = vec3(452.42, -980.03, 29.69), -- where officers open it
-                slots = 150, -- cells, laid out 5 to a row
-                maxWeight = 400000, -- most it holds, in grams
-                minGrade = 1, -- lowest job grade allowed in
-                refillCooldown = 1800, -- seconds between restocks; opening it tops each item back up to its amount
-                items = { -- items kept in stock: item name and the amount it refills to
-                    { name = 'weapon_pistol', amount = 1 },
-                    { name = 'pistol_ammo', amount = 60 },
-                    { name = 'handcuffs', amount = 2 },
-                    { name = 'radio', amount = 1 },
-                    { name = 'armor', amount = 1 },
-                    { name = 'bandage', amount = 5 },
-                },
-            },
             garage = {
                 coords = vec3(454.63, -1017.36, 28.43), -- where officers open the garage
                 spawn = vec4(438.35, -1018.29, 27.69, 90.0), -- where the vehicle appears, with heading

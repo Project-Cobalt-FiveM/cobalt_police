@@ -174,15 +174,10 @@
   },
   "station": {
     "garage": "Police garage",
-    "locker": "Personal locker",
     "wardrobe": "Wardrobe",
     "management": "Department management",
-    "armory_rank": "Your rank can't use the armory",
     "blip": {
       "mission_row": "LSPD Mission Row"
-    },
-    "armory": {
-      "lspd_mission_row_armory": "LSPD Armory"
     },
     "vehicle": {
       "police": "Stanier Cruiser",

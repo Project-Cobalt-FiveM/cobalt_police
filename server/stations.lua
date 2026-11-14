@@ -3,8 +3,6 @@ local officers <const> = require 'server.officers'
 local Cobalt <const> = exports.cobalt_core:GetCoreObject()
 local inventory <const> = exports.cobalt_inventory
 
-local LOCKER_STASH <const> = 'police_locker'
-
 ---@type table<string, integer>
 local restockedAt <const> = {}
 
@@ -25,72 +23,34 @@ local function atPoint(source, coords)
     return officers.isLeo(source) and officers.nearCoords(source, coords, 3.0)
 end
 
-CreateThread(function()
-    for _, station in ipairs(config.stations) do
-        local armory <const> = station.armory
+---@param stashId string
+local function restock(stashId)
+    local armory <const> = config.armories[stashId]
 
-        if armory then
-            inventory:CreateStash(armory.id, {
-                slots = armory.slots,
-                maxWeight = armory.maxWeight,
-                label = locale(('station.armory.%s'):format(armory.id)),
-            })
-        end
-    end
+    if not armory then return end
 
-    inventory:CreateStash(LOCKER_STASH, {
-        slots = config.locker.slots,
-        maxWeight = config.locker.maxWeight,
-        label = locale('station.locker'),
-        personal = true,
-    })
-end)
-
----@param armory table
-local function restock(armory)
     local now <const> = os.time()
 
-    if now - (restockedAt[armory.id] or 0) < armory.refillCooldown then return end
+    if now - (restockedAt[stashId] or 0) < armory.refillCooldown then return end
 
     local short, added = false, false
 
     for _, item in ipairs(armory.items) do
-        local missing <const> = item.amount - inventory:GetItemCount(nil, item.name, armory.id)
+        local missing <const> = item.amount - inventory:GetItemCount(nil, item.name, stashId)
 
         if missing > 0 then
             short = true
-            added = inventory:AddItem(nil, item.name, missing, nil, armory.id, 'armory_restock') or added
+            added = inventory:AddItem(nil, item.name, missing, nil, stashId, 'armory_restock') or added
         end
     end
 
     if added or not short then
-        restockedAt[armory.id] = now
+        restockedAt[stashId] = now
     end
 end
 
-RegisterNetEvent('cobalt_police:openArmory', function(stationId)
-    local source <const> = source
-    local station <const> = findStation(stationId)
-    local armory <const> = station?.armory
-
-    if not armory or not atPoint(source, armory.coords) then return end
-
-    if officers.job(source).grade < armory.minGrade then
-        return officers.notify(source, locale('station.armory_rank'), 'error')
-    end
-
-    if not inventory:OpenStash(source, armory.id) then return end
-
-    restock(armory)
-end)
-
-RegisterNetEvent('cobalt_police:openLocker', function(stationId)
-    local source <const> = source
-    local station <const> = findStation(stationId)
-
-    if not station?.locker or not atPoint(source, station.locker) then return end
-
-    inventory:OpenStash(source, LOCKER_STASH)
+AddEventHandler('cobalt_inventory:server:openedInventory', function(_, invName)
+    restock(invName)
 end)
 
 RegisterNetEvent('cobalt_police:openBossMenu', function(stationId)

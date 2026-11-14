@@ -45,24 +45,6 @@ for _, station in ipairs(config.stations) do
     EndTextCommandSetBlipName(blip)
     blips[#blips + 1] = blip
 
-    if station.armory then
-        zone(station.armory.coords, ('cobalt_police:%s:armory'):format(station.id), {
-            label = locale(('station.armory.%s'):format(station.armory.id)),
-            icon = 'fas fa-gun',
-            canInteract = officer.isPolice,
-            onSelect = function() TriggerServerEvent('cobalt_police:openArmory', station.id) end,
-        })
-    end
-
-    if station.locker then
-        zone(station.locker, ('cobalt_police:%s:locker'):format(station.id), {
-            label = locale('station.locker'),
-            icon = 'fas fa-box-archive',
-            canInteract = officer.isPolice,
-            onSelect = function() TriggerServerEvent('cobalt_police:openLocker', station.id) end,
-        })
-    end
-
     if station.wardrobe then
         zone(station.wardrobe, ('cobalt_police:%s:wardrobe'):format(station.id), {
             label = locale('station.wardrobe'),
