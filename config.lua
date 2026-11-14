@@ -49,6 +49,7 @@ return {
     },
 
     cuffRange = 3.0, -- meters from the target to cuff, uncuff, search or escort
+    itemRange = 2.0, -- meters in front of the player to look for someone on foot when they use handcuffs or zipties from the inventory
     breakoutCooldown = 30, -- seconds between breakout attempts
 
     -- Animations for cuffing, being cuffed and walking cuffed

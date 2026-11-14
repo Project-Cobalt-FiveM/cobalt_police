@@ -174,6 +174,11 @@ function CobaltPoliceExports:UseMdt(event, item, inventory) end
 ---@param inventory { id: string, source: integer }
 function CobaltPoliceExports:UseTape(event, item, inventory) end
 
+---**Client.** The `handcuffs` and `zipties` items' client export. On `usedItem` it restrains the nearest player on foot in front of the player, within `itemRange` meters, with the same rules as the Cuff and Tie hands target options. Handcuffs need a police job, and zipties need a target with their hands up.
+---@param event 'usingItem' | 'usedItem'
+---@param item { name: string }
+function CobaltPoliceExports:UseRestraint(event, item) end
+
 ---**Server.** Opens the MDT for a player with access, optionally on a page or citizen profile.
 ---@param source integer
 ---@param page? PoliceMdtPage

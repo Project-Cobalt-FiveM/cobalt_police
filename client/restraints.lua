@@ -224,8 +224,12 @@ end)
 ---@param target integer
 ---@param cuffType 'cuffs'|'zipties'
 local function cuff(target, cuffType)
-    if not lib.callback.await('cobalt_police:startCuff', false, target, cuffType) then
-        return core:Notify({ description = locale('restraints.cannot_restrain'), type = 'error' })
+    local started <const>, err <const> = lib.callback.await('cobalt_police:startCuff', false, target, cuffType)
+
+    if not started then
+        local reason <const> = err and ('restraints.failure.%s'):format(err) or 'restraints.cannot_restrain'
+
+        return core:Notify({ description = locale(reason), type = 'error' })
     end
 
     local finished <const> = core:Progressbar({
@@ -240,6 +244,56 @@ local function cuff(target, cuffType)
         TriggerServerEvent('cobalt_police:finishCuff')
     end
 end
+
+local FRONT_CONE <const> = 0.5
+
+---@type table<string, PoliceCuffType> the restraint each item applies, by item name
+local CUFF_TYPE_OF <const> = {}
+
+for cuffType, restraint in pairs(config.cuffTypes) do CUFF_TYPE_OF[restraint.item] = cuffType end
+
+---@param offset vector2 from the local player to another, on the ground
+---@return boolean
+local function inFront(offset)
+    local forward <const> = GetEntityForwardVector(cache.ped)
+
+    return offset.x * forward.x + offset.y * forward.y >= #offset * FRONT_CONE
+end
+
+---@return integer? serverId the nearest player on foot in front of the local player, within `itemRange`
+local function playerInFront()
+    local coords <const> = GetEntityCoords(cache.ped)
+    local nearest, nearestDistance = nil, math.huge
+
+    for _, player in ipairs(lib.getNearbyPlayers(coords, config.itemRange)) do
+        local offset <const> = (player.coords - coords).xy
+        local distance <const> = #offset
+
+        if player.vehicle == 0 and distance < nearestDistance and inFront(offset) then
+            nearest, nearestDistance = player.id, distance
+        end
+    end
+
+    return nearest and GetPlayerServerId(nearest)
+end
+
+exports('UseRestraint', function(event, item)
+    local cuffType <const> = CUFF_TYPE_OF[item.name]
+
+    if event ~= 'usedItem' or not cuffType or core:progressActive() then return end
+
+    if cache.vehicle then
+        return core:Notify({ description = locale('restraints.in_vehicle'), type = 'error' })
+    end
+
+    local target <const> = playerInFront()
+
+    if not target then
+        return core:Notify({ description = locale('restraints.no_one_in_front'), type = 'error' })
+    end
+
+    cuff(target, cuffType)
+end)
 
 ---@param target integer
 ---@param label string
