@@ -171,15 +171,6 @@ CREATE TABLE IF NOT EXISTS `police_tags` (
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `police_citizen_tags` (
-  `citizenid` VARCHAR(50) NOT NULL,
-  `tag_id` INT UNSIGNED NOT NULL,
-  PRIMARY KEY (`citizenid`, `tag_id`),
-  KEY `tag_id` (`tag_id`),
-  CONSTRAINT `police_citizen_tags_tag_fk` FOREIGN KEY (`tag_id`) REFERENCES `police_tags` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `police_citizen_tags_citizenid_fk` FOREIGN KEY (`citizenid`) REFERENCES `players` (`citizenid`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS `police_certificates` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(100) NOT NULL,

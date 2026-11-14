@@ -97,7 +97,7 @@ RegisterNetEvent('cobalt_police:openBossMenu', function(stationId)
 
     if not job?.isBoss then return end
 
-    exports.cobalt_management:OpenMenu(source, 'org')
+    exports.cobalt_management:OpenMenu(source, 'job')
 end)
 
 ---@type table<integer, integer> officer source to the station vehicle they last took out

@@ -190,6 +190,37 @@ local function vehiclesOf(citizenid, owner)
     return out
 end
 
+local TAGS_KEY <const> = 'tags'
+
+---@param value any metadata.tags as stored
+---@return integer[]
+local function tagIds(value)
+    local ids <const> = {}
+
+    if type(value) ~= 'table' then return ids end
+
+    for _, id in ipairs(value) do
+        ids[#ids + 1] = math.tointeger(id)
+    end
+
+    return ids
+end
+
+---@param ids integer[]
+---@param tagId integer
+---@return integer[]
+local function withoutTag(ids, tagId)
+    local kept <const> = {}
+
+    for _, id in ipairs(ids) do
+        if id ~= tagId then
+            kept[#kept + 1] = id
+        end
+    end
+
+    return kept
+end
+
 ---@param citizenids string[]
 ---@return table<string, table[]>
 local function tagsFor(citizenids)
@@ -199,17 +230,80 @@ local function tagsFor(citizenids)
         return out
     end
 
-    local rows <const> = MySQL.query.await([[
-        SELECT ct.citizenid, t.id, t.name, t.color FROM police_citizen_tags ct JOIN police_tags t ON t.id = ct.tag_id
-        WHERE ct.citizenid IN (?) ORDER BY t.name
-    ]], { citizenids }) or {}
+    local held <const> = {}
+    local wanted <const> = {}
 
-    for _, row in ipairs(rows) do
-        out[row.citizenid] = out[row.citizenid] or {}
-        table.insert(out[row.citizenid], { id = row.id, name = row.name, color = row.color })
+    for citizenid, value in pairs(exports.cobalt_core:GetMetaData(citizenids, TAGS_KEY)) do
+        local ids <const> = {}
+
+        for _, id in ipairs(tagIds(value)) do
+            ids[id] = true
+            wanted[#wanted + 1] = id
+        end
+
+        held[citizenid] = ids
+    end
+
+    if #wanted == 0 then
+        return out
+    end
+
+    local definitions <const> = MySQL.query.await(
+        'SELECT id, name, color FROM police_tags WHERE id IN (?) ORDER BY name',
+        { wanted }
+    ) or {}
+
+    for citizenid, ids in pairs(held) do
+        local tags <const> = {}
+
+        for _, tag in ipairs(definitions) do
+            if ids[tag.id] then
+                tags[#tags + 1] = { id = tag.id, name = tag.name, color = tag.color }
+            end
+        end
+
+        out[citizenid] = tags
     end
 
     return out
+end
+
+---@param citizenid string
+---@param tagId integer
+---@param holds boolean
+---@return boolean saved false when the change didn't reach a character with that citizenid
+local function setCitizenTag(citizenid, tagId, holds)
+    local ids <const> = tagIds(exports.cobalt_core:GetMetaData({ citizenid }, TAGS_KEY)[citizenid])
+
+    if lib.table.contains(ids, tagId) == holds then return true end
+
+    if not holds then
+        return exports.cobalt_core:SetMetaData(citizenid, TAGS_KEY, withoutTag(ids, tagId))
+    end
+
+    ids[#ids + 1] = tagId
+
+    return exports.cobalt_core:SetMetaData(citizenid, TAGS_KEY, ids)
+end
+
+---@param tagId integer
+local function dropTagFromCitizens(tagId)
+    local holders <const> = MySQL.query.await(
+        "SELECT citizenid FROM players WHERE JSON_CONTAINS(metadata, ?, '$.tags')",
+        { tostring(tagId) }
+    ) or {}
+
+    if #holders == 0 then return end
+
+    local citizenids <const> = {}
+
+    for i, row in ipairs(holders) do
+        citizenids[i] = row.citizenid
+    end
+
+    for citizenid, value in pairs(exports.cobalt_core:GetMetaData(citizenids, TAGS_KEY)) do
+        exports.cobalt_core:SetMetaData(citizenid, TAGS_KEY, withoutTag(tagIds(value), tagId))
+    end
 end
 
 ---@param rows table[]
@@ -854,10 +948,15 @@ local handlers <const> = {
     addCitizenTag = {
         permission = 'editProfile',
         fn = function(_, data)
-            MySQL.insert.await(
-                'INSERT IGNORE INTO police_citizen_tags (citizenid, tag_id) SELECT citizenid, ? FROM players WHERE citizenid = ?',
-                { tonumber(data.tagId), text(data.citizenid) }
-            )
+            local citizenid <const>, tagId <const> = text(data.citizenid), math.tointeger(data.tagId)
+
+            if not tagId or not MySQL.scalar.await('SELECT 1 FROM police_tags WHERE id = ?', { tagId }) then
+                return fail(locale('mdt.error.tag_missing'))
+            end
+
+            if not citizenid or not setCitizenTag(citizenid, tagId, true) then
+                return fail(locale('mdt.error.unknown_citizen'))
+            end
 
             return OK
         end,
@@ -865,10 +964,11 @@ local handlers <const> = {
     removeCitizenTag = {
         permission = 'editProfile',
         fn = function(_, data)
-            MySQL.update.await(
-                'DELETE FROM police_citizen_tags WHERE citizenid = ? AND tag_id = ?',
-                { text(data.citizenid), tonumber(data.tagId) }
-            )
+            local citizenid <const>, tagId <const> = text(data.citizenid), math.tointeger(data.tagId)
+
+            if citizenid and tagId then
+                setCitizenTag(citizenid, tagId, false)
+            end
 
             return OK
         end,
@@ -1485,8 +1585,14 @@ local handlers <const> = {
     getTags = {
         fn = function()
             return MySQL.query.await([[
-                SELECT t.id, t.name, t.color, (SELECT COUNT(*) FROM police_citizen_tags ct WHERE ct.tag_id = t.id) AS holders
-                FROM police_tags t ORDER BY t.name LIMIT 500
+                SELECT t.id, t.name, t.color, COALESCE(h.holders, 0) AS holders
+                FROM police_tags t
+                LEFT JOIN (
+                    SELECT held.tag_id, COUNT(DISTINCT p.citizenid) AS holders
+                    FROM players p, JSON_TABLE(p.metadata, '$.tags[*]' COLUMNS (tag_id INT UNSIGNED PATH '$')) held
+                    GROUP BY held.tag_id
+                ) h ON h.tag_id = t.id
+                ORDER BY t.name LIMIT 500
             ]]) or {}
         end,
     },
@@ -1522,7 +1628,11 @@ local handlers <const> = {
     deleteTag = {
         permission = 'manageTags',
         fn = function(_, data)
-            MySQL.update.await('DELETE FROM police_tags WHERE id = ?', { tonumber(data.id) })
+            local id <const> = math.tointeger(data.id)
+
+            if id and MySQL.update.await('DELETE FROM police_tags WHERE id = ?', { id }) == 1 then
+                dropTagFromCitizens(id)
+            end
 
             return OK
         end,

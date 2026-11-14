@@ -58,6 +58,7 @@
       "unknown_rank": "Unknown rank",
       "rank_out_of_reach": "You can only edit ranks below your own in your department",
       "tag_name": "Name the tag",
+      "tag_missing": "That tag was deleted",
       "certificate_name": "Name the certificate",
       "template_name": "Name the template",
       "invalid_settings": "Invalid settings"
