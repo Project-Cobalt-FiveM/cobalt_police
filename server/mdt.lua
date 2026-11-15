@@ -1494,8 +1494,7 @@ local handlers <const> = {
                 return fail(locale('mdt.error.officer_rank_too_high'))
             end
 
-            local target <const> = officers.sourceOf(citizenid)
-            local player <const> = target and officers.player(target) or Cobalt.Functions.GetOfflinePlayerByCitizenId(citizenid)
+            local player <const> = Cobalt.Functions.GetPlayerByCitizenId(citizenid)
 
             if not player then
                 return fail(locale('mdt.error.officer_not_found'))

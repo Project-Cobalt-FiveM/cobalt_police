@@ -306,7 +306,6 @@ local function fine(citizenid, amount)
     if amount <= 0 then return true end
 
     local player <const> = Cobalt.Functions.GetPlayerByCitizenId(citizenid)
-        or Cobalt.Functions.GetOfflinePlayerByCitizenId(citizenid)
 
     return player ~= nil and player.Functions.RemoveMoney('bank', amount, 'police-fine') == true
 end
